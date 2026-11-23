@@ -325,6 +325,7 @@
         <div id="regional-scores" class="competition-panel bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800">
           <h2 class="text-xl font-bold text-emerald-400">🏆 Competiciones de Castilla-La Mancha</h2>
           <p class="text-sm text-slate-400 mt-2">Equipos, calendarios, resultados y clasificaciones guardados en FútbolRed. No se muestran resultados de demostración.</p>
+          <a class="inline-flex min-h-11 items-center text-sm font-semibold text-emerald-400" href="https://www.ffcm.es/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120" target="_blank" rel="noopener">Ver resultados y clasificaciones oficiales ↗</a>
           <p id="fr-league-status" class="text-xs text-amber-300 mt-3" aria-live="polite">Consultando competiciones...</p>
           <div class="competition-filters mt-4">
             <label class="text-xs text-slate-300">Competición
@@ -1836,7 +1837,7 @@ async function frLeagueCompetitionChanged(){
  if(r.error){frLeagueStatus('Error al consultar grupos: '+r.error.message);return;}
  frLeagueGroups=r.data||[];
  el.innerHTML='<option value="">Selecciona un grupo</option>'+frLeagueGroups.map(g=>`<option value="${g.id}">${frSafe(g.name)}</option>`).join('');
- frLeagueStatus(frLeagueGroups.length?'Selecciona un grupo para consultar partidos y clasificación.':'Esta competición todavía no tiene grupos cargados.');
+ frLeagueStatus(frLeagueGroups.length?'Selecciona un grupo para consultar partidos y clasificación.':'Esta competición todavía no tiene grupos cargados en FútbolRed. Puedes consultar los resultados en la Federación.');
 }
 async function frLeagueGroupChanged(){
  const groupId=document.getElementById('fr-league-group').value;
