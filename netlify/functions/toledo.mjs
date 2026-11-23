@@ -3,6 +3,9 @@ import { load } from 'cheerio';
 const origin = 'https://deportes.diputoledo.es';
 const season = '2026/2027';
 const categories = {
+  PBM: 'Prebenjamín masculino',
+  BJM: 'Benjamín masculino',
+  AM: 'Alevín masculino',
   CM: 'Cadete masculino',
   IM: 'Infantil masculino',
   AIF: 'Alevín–Infantil femenino',
@@ -54,8 +57,8 @@ export function parseGroups($) {
   return $('form#comp').toArray().flatMap(element => {
     const form = $(element);
     const code = clean(form.find('.fw-bold').first().text());
-    const group = /^(CM|IM|AIF|ICF)-\d+$/.exec(code);
-    if (!group) return [];
+    const group = /^([A-Z]+)-\d{2}$/.exec(code);
+    if (!group || !Object.hasOwn(categories, group[1])) return [];
     return [{
       code,
       name: clean(form.find('.fw-bold').first().parent().text()),
@@ -102,13 +105,31 @@ export function parseView($, group, title, view) {
   return { group, round, rounds, rows };
 }
 
+async function listGroups(championship) {
+  const home = await page('/');
+  const form = home.$('form#filtrado');
+  const id = form.find('select[name=id_temporada] option').toArray()
+    .find(option => clean(home.$(option).text()) === season)?.attribs.value;
+  if (!id) throw new Error('Temporada no disponible');
+  const filter = fields(form);
+  const checked = form.find('input[name=tipo][checked]').val() ?? 'fase_grupos';
+  for (const [key, value] of Object.entries({
+    id_temporada: id, id_temporada_old: id, tipo: checked, tipo_old: checked,
+    id_campeonato: championship, id_campeonato_old: championship, id_deporte: '1', id_deporte_old: '1',
+    id_categoria: 'todas', id_genero: 'todos', filtrar: 'si',
+  })) filter.set(key, value);
+
+  const listing = await page('/', filter, home.cookie);
+  return parseGroups(listing.$).map(group => ({ ...group, cookie: listing.cookie }));
+}
+
 export default async function handler(request) {
   if (request.method !== 'GET') return new Response(null, { status: 405, headers: { Allow: 'GET' } });
   const params = new URL(request.url).searchParams;
   const code = params.get('grupo');
   const view = params.get('vista');
   const round = params.get('jornada');
-  if ((code && (!/^(CM|IM|AIF|ICF)-\d{2}$/.test(code) || !Object.hasOwn(views, view))) ||
+  if ((code && (!/^(PBM|BJM|AM|CM|IM|AIF|ICF)-\d{2}$/.test(code) || !Object.hasOwn(views, view))) ||
       (round !== null && !/^[1-9]\d?$/.test(round))) {
     return Response.json({ error: 'Consulta inválida' }, { status: 400 });
   }
@@ -118,21 +139,10 @@ export default async function handler(request) {
     'Netlify-Vary': 'query=grupo|vista|jornada',
   };
   try {
-    const home = await page('/');
-    const form = home.$('form#filtrado');
-    const id = form.find('select[name=id_temporada] option').toArray()
-      .find(option => clean(home.$(option).text()) === season)?.attribs.value;
-    if (!id) throw new Error('Temporada no disponible');
-    const filter = fields(form);
-    const checked = form.find('input[name=tipo][checked]').val() ?? 'fase_grupos';
-    for (const [key, value] of Object.entries({
-      id_temporada: id, id_temporada_old: id, tipo: checked, tipo_old: checked,
-      id_campeonato: '1', id_campeonato_old: '1', id_deporte: '1', id_deporte_old: '1',
-      id_categoria: 'todas', id_genero: 'todos', filtrar: 'si',
-    })) filter.set(key, value);
-
-    const listing = await page('/', filter, home.cookie);
-    const groups = parseGroups(listing.$);
+    const championship = code?.startsWith('PBM-') ? '3' : code?.startsWith('BJM-') ? '2' : '1';
+    const groups = code
+      ? await listGroups(championship)
+      : (await Promise.all(['1', '2', '3'].map(listGroups))).flat();
     if (!groups.length) throw new Error('El portal no devolvió los grupos');
     if (!code) {
       return Response.json({ season, groups: groups.map(({ code, name, category }) =>
@@ -143,7 +153,7 @@ export default async function handler(request) {
 
     const [operation, title] = views[view];
     const path = '/competiciones/' + operation;
-    let detail = await page(path, group.fields, listing.cookie);
+    let detail = await page(path, group.fields, group.cookie);
     if (round && view !== 'clasificacion') {
       const report = detail.$('form#informe');
       if (!report.find('select[name=num_jornada] option[value="' + round + '"]').length) {
