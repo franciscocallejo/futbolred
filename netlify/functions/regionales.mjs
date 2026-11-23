@@ -66,14 +66,14 @@ export default async function handler(request) {
       return Response.json({ groups: options($, '#grupo') }, { headers });
     }
 
-    const url = federacion('NFG_VisCalendario_Vis', { ...params, CodGrupo: group });
+    const url = federacion('NFG_VisCalendario_Vis', { codtemporada: '22', codcompeticion: competition, codgrupo: group, CodJornada: '1' });
     const $ = await read(url);
     const rounds = parseRounds($);
     if (!rounds.length) throw new Error('Calendario no disponible');
     return Response.json({
       rounds,
       source: federacion('NFG_CmpJornada', { ...params, CodGrupo: group }).href,
-      standings: federacion('NFG_VisClasificacion', { ...params, CodGrupo: group }).href,
+      standings: federacion('NFG_VisClasificacion', { codcompeticion: competition, codgrupo: group }).href,
     }, { headers });
   } catch (error) {
     console.error('FFCM:', error.message);
