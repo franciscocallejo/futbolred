@@ -67,6 +67,24 @@
     .badge-glow {
       box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
     }
+.competition-panel { container-type: inline-size; }
+.competition-filters { display:grid; gap:.75rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.competition-filters label { min-width:0; }
+.competition-filters label:first-child { grid-column:1/-1; }
+.competition-filters select { min-height:44px; font-size:1rem; }
+.competition-table td, #fr-league-matches { overflow-wrap:anywhere; }
+#regional-scores { scroll-margin-top:5rem; }
+@container (max-width:380px) {
+  .competition-filters { grid-template-columns:minmax(0,1fr); }
+}
+@container (max-width:600px) {
+  .competition-table, .competition-table tbody { display:block; }
+  .competition-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .competition-table tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem .85rem; padding:.85rem; margin-bottom:.65rem; border:1px solid #334155; border-radius:.75rem; }
+  .competition-table td { min-width:0; padding:0; }
+  .competition-table td[data-label]::before { display:block; content:attr(data-label); color:#94a3b8; font-size:.75rem; }
+  .competition-table td:is([colspan],[data-label="Equipo"],[data-label="Campo"],[data-label="Notas"]) { grid-column:1/-1; }
+}
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-emerald-500 selection:text-slate-950 flex flex-col">
@@ -278,9 +296,10 @@
 
       <!-- VISTA 2: COMPETICIONES OFICIALES (solo datos realmente cargados) -->
       <section id="view-scores" class="view-section space-y-5 hidden">
-        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+        <a href="#regional-scores" class="inline-flex min-h-11 items-center text-sm font-semibold text-emerald-400">Ir a competiciones regionales ↓</a>
+        <div class="competition-panel bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800 space-y-4">
           <h2 class="text-xl font-bold text-emerald-400">Fútbol escolar de Toledo · 2026/27</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="competition-filters">
             <label class="text-sm text-slate-300">Grupo
               <select id="toledo-group" disabled class="block w-full mt-1 bg-slate-950 border border-slate-700 rounded-xl p-2"></select>
             </label>
@@ -296,18 +315,18 @@
             </label>
           </div>
           <p id="toledo-status" role="status" class="text-sm text-slate-400"></p>
-          <div id="toledo-data" class="overflow-x-auto"></div>
+          <div id="toledo-data"></div>
           <div class="flex flex-wrap gap-4 text-sm text-emerald-400">
-            <button id="toledo-retry" type="button">Actualizar</button>
+            <button id="toledo-retry" type="button" class="min-h-11">Actualizar</button>
             <a href="https://deportes.diputoledo.es/" target="_blank" rel="noopener">Portal oficial de la Diputación</a>
           </div>
         </div>
 
-        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+        <div id="regional-scores" class="competition-panel bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-800">
           <h2 class="text-xl font-bold text-emerald-400">🏆 Competiciones de Castilla-La Mancha</h2>
           <p class="text-sm text-slate-400 mt-2">Equipos, calendarios, resultados y clasificaciones guardados en FútbolRed. No se muestran resultados de demostración.</p>
           <p id="fr-league-status" class="text-xs text-amber-300 mt-3" aria-live="polite">Consultando competiciones...</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+          <div class="competition-filters mt-4">
             <label class="text-xs text-slate-300">Competición
               <select id="fr-league-competition" onchange="frLeagueCompetitionChanged()" class="block w-full mt-1 bg-slate-950 border border-slate-700 text-white rounded-xl p-3"><option value="">Cargando...</option></select>
             </label>
@@ -321,9 +340,9 @@
           <h3 class="font-bold text-slate-100 mb-3">⚽ Partidos</h3>
           <div id="fr-league-matches" class="space-y-2 text-sm text-slate-400">Selecciona un grupo.</div>
         </div>
-        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+        <div class="competition-panel bg-slate-900 p-4 rounded-2xl border border-slate-800">
           <h3 class="font-bold text-slate-100 mb-3">📊 Clasificación</h3>
-          <div class="overflow-x-auto"><table class="w-full text-xs text-left text-slate-200"><thead><tr class="border-b border-slate-700 text-slate-400"><th class="p-2">Pos.</th><th class="p-2">Equipo</th><th class="p-2">PJ</th><th class="p-2">G</th><th class="p-2">E</th><th class="p-2">P</th><th class="p-2">GF</th><th class="p-2">GC</th><th class="p-2">Pts.</th></tr></thead><tbody id="fr-league-standings"><tr><td colspan="9" class="p-3">Selecciona un grupo.</td></tr></tbody></table></div>
+          <div><table role="table" class="competition-table w-full text-xs text-left text-slate-200"><thead><tr class="border-b border-slate-700 text-slate-400"><th class="p-2">Pos.</th><th class="p-2">Equipo</th><th class="p-2">PJ</th><th class="p-2">G</th><th class="p-2">E</th><th class="p-2">P</th><th class="p-2">GF</th><th class="p-2">GC</th><th class="p-2">Pts.</th></tr></thead><tbody id="fr-league-standings"><tr><td colspan="9" class="p-3">Selecciona un grupo.</td></tr></tbody></table></div>
         </div>
       </section>
 
@@ -1820,7 +1839,7 @@ async function frLeagueGroupChanged(){
   const score=x.home_score!=null&&x.away_score!=null?`${x.home_score} - ${x.away_score}`:'vs';
   return `<div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><div class="text-xs text-slate-400">Jornada ${frSafe(x.round_number??'—')} · ${frSafe(date)} · ${frSafe(x.status||'Programado')}</div><div class="font-semibold mt-1">${team(x.home_team_id)} <span class="text-emerald-400 px-2">${frSafe(score)}</span> ${team(x.away_team_id)}</div></div>`;
  }).join(''):'No hay partidos cargados en este grupo.';
- document.getElementById('fr-league-standings').innerHTML=standings.length?standings.map(x=>`<tr class="border-b border-slate-800"><td class="p-2">${frSafe(x.position??'—')}</td><td class="p-2">${team(x.team_id)}</td>${['played','won','drawn','lost','goals_for','goals_against','points'].map(k=>`<td class="p-2">${frSafe(x[k]??0)}</td>`).join('')}</tr>`).join(''):'<tr><td colspan="9" class="p-3">No hay clasificación cargada para este grupo.</td></tr>';
+ document.getElementById('fr-league-standings').innerHTML=standings.length?standings.map(x=>`<tr class="border-b border-slate-800"><td class="p-2" data-label="Pos.">${frSafe(x.position??'—')}</td><td class="p-2" data-label="Equipo">${team(x.team_id)}</td>${['played','won','drawn','lost','goals_for','goals_against','points'].map((k,i)=>`<td class="p-2" data-label="${["PJ","G","E","P","GF","GC","Pts."][i]}">${frSafe(x[k]??0)}</td>`).join('')}</tr>`).join(''):'<tr><td colspan="9" class="p-3">No hay clasificación cargada para este grupo.</td></tr>';
  frLeagueStatus(`Datos almacenados: ${matches.length} partidos y ${standings.length} equipos en clasificación. No implica actualización en directo.`);
 }
 // Releer datos almacenados cada cinco minutos mientras se visualiza esta pestaña.
@@ -1828,6 +1847,6 @@ setInterval(()=>{if(typeof state!=='undefined'&&state.activeTab==='scores'){
  const g=document.getElementById('fr-league-group');if(g&&g.value)frLeagueGroupChanged();else frLoadLeagues();
 }},300000);
 </script>
-<script src="/toledo.js"></script>
+<script src="/toledo.js?v=2"></script>
 </body>
 </html>

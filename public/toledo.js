@@ -23,7 +23,8 @@
 
   function renderTable(rows) {
     const table = document.createElement('table');
-    table.className = 'w-full text-sm text-left';
+    table.className = 'competition-table w-full text-sm text-left';
+    table.setAttribute('role', 'table');
     const header = table.createTHead().insertRow();
     for (const label of headings[view.value]) {
       const cell = document.createElement('th');
@@ -36,9 +37,10 @@
     for (const values of rows) {
       const row = body.insertRow();
       row.className = 'border-t border-slate-800';
-      for (const value of values) {
+      for (const [index, value] of values.entries()) {
         const cell = row.insertCell();
         cell.className = 'p-2';
+        cell.dataset.label = headings[view.value][index];
         cell.textContent = value || '—';
       }
     }
