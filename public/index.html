@@ -1681,8 +1681,8 @@
 <div id="fr-auth" style="position:fixed;inset:0;z-index:99999;background:#070b13;color:#e5e7eb;display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui">
  <div style="width:min(420px,100%);background:#111827;border:1px solid #334155;border-radius:18px;padding:24px">
   <h2 style="font-size:25px;font-weight:800;margin:0 0 6px;color:#34d399">⚽ FútbolRed</h2><p style="margin:0 0 16px;color:#cbd5e1">Entra o crea tu cuenta para compartir con la comunidad.</p>
-  <input id="fr-email" type="email" placeholder="Correo electrónico" style="box-sizing:border-box;width:100%;padding:12px;margin:6px 0;border-radius:9px;background:#0b1220;border:1px solid #475569;color:white">
-  <input id="fr-password" type="password" placeholder="Contraseña (mín. 6 caracteres)" style="box-sizing:border-box;width:100%;padding:12px;margin:6px 0;border-radius:9px;background:#0b1220;border:1px solid #475569;color:white">
+  <input id="fr-email" type="email" autocomplete="username" placeholder="Correo electrónico" style="box-sizing:border-box;width:100%;padding:12px;margin:6px 0;border-radius:9px;background:#0b1220;border:1px solid #475569;color:white">
+  <input id="fr-password" type="password" autocomplete="current-password" placeholder="Contraseña (mín. 6 caracteres)" style="box-sizing:border-box;width:100%;padding:12px;margin:6px 0;border-radius:9px;background:#0b1220;border:1px solid #475569;color:white">
   <button onclick="frLogin()" style="width:100%;padding:12px;margin-top:8px;border-radius:9px;background:#10b981;color:#06130d;font-weight:800">Iniciar sesión</button>
   <button onclick="frSignup()" style="width:100%;padding:12px;margin-top:8px;border-radius:9px;background:#334155;color:white;font-weight:700">Crear cuenta</button>
   <p id="fr-msg" style="font-size:13px;color:#fbbf24;margin:10px 0 0"></p>
@@ -1691,10 +1691,13 @@
 <script>
 const FR_SUPABASE_URL='https://jrbuwhtylsgiwzfsrdfp.supabase.co';
 const FR_SUPABASE_KEY='sb_publishable_LqjJmB_k9Yl3bBpKSFCg2A_a3JeMSCe';
-const frClient=window.supabase.createClient(FR_SUPABASE_URL,FR_SUPABASE_KEY);
+const frClient=window.supabase.createClient(FR_SUPABASE_URL,FR_SUPABASE_KEY,{
+ auth:{persistSession:true,autoRefreshToken:true}
+});
+let frPostsChannel;
 function frMessage(t){document.getElementById('fr-msg').textContent=t}
 async function frSignup(){const e=document.getElementById('fr-email').value.trim(),p=document.getElementById('fr-password').value;if(!e||p.length<6)return frMessage('Pon tu correo y una contraseña de al menos 6 caracteres.');const r=await frClient.auth.signUp({email:e,password:p});frMessage(r.error?r.error.message:'Cuenta creada. Si te llega un correo de confirmación, confirma y después inicia sesión.')}
-async function frLogin(){const e=document.getElementById('fr-email').value.trim(),p=document.getElementById('fr-password').value;const r=await frClient.auth.signInWithPassword({email:e,password:p});if(r.error)return frMessage(r.error.message);document.getElementById('fr-auth').style.display='none';await frLoadPosts();frClient.channel('fr-posts').on('postgres_changes',{event:'INSERT',schema:'public',table:'posts'},()=>frLoadPosts()).subscribe()}
+async function frLogin(){const e=document.getElementById('fr-email').value.trim(),p=document.getElementById('fr-password').value;const r=await frClient.auth.signInWithPassword({email:e,password:p});if(r.error)return frMessage(r.error.message);document.getElementById('fr-password').value='';frMessage('')}
 async function frLoadPosts(){const r=await frClient.from('posts').select('*').order('created_at',{ascending:false});if(r.error){console.warn(r.error);return}const rem=(r.data||[]).map(x=>({id:x.id,authorName:x.author_name,authorHandle:x.author_handle,authorAvatar:x.author_avatar||state.userProfile.avatar,role:x.role||'Usuario',badge:x.badge||'',time:new Date(x.created_at).toLocaleString(),category:x.category,content:x.content,matchScore:x.match_score,mediaUrl:x.media_url,likes:0,liked:false,comments:[]}));state.posts=rem;await frLoadInteractions();renderAll()}
 
 function frEscape(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -1785,7 +1788,24 @@ handlePublishPost=async function(){
 };
 
 window.addEventListener('focus',()=>{frClient.auth.getSession().then(({data})=>{if(data.session)frLoadPosts()})});
-frClient.auth.getSession().then(({data})=>{if(data.session){document.getElementById('fr-auth').style.display='none';frLoadPosts()}});
+frClient.auth.onAuthStateChange((event,session)=>{
+ const auth=document.getElementById('fr-auth');
+ auth.style.display=session?'none':'flex';
+ if(event==='SIGNED_OUT'&&frPostsChannel){
+  const channel=frPostsChannel;
+  frPostsChannel=null;
+  setTimeout(()=>frClient.removeChannel(channel),0);
+ }
+ if(!session||(event!=='INITIAL_SESSION'&&event!=='SIGNED_IN'))return;
+ setTimeout(()=>{
+  frLoadPosts();
+  if(!frPostsChannel){
+   frPostsChannel=frClient.channel('fr-posts')
+     .on('postgres_changes',{event:'INSERT',schema:'public',table:'posts'},()=>frLoadPosts())
+     .subscribe();
+  }
+ },0);
+});
 </script>
 
 
